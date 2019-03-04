@@ -16,7 +16,7 @@ namespace LinebotAzureOCRGit.Controllers
 
         [Route("api/AzureOCR")]
         [HttpPost]
-        public IHttpActionResult OCR()
+        public async Task<IHttpActionResult> OCR()
         {
 
             string replyToken = "";
@@ -38,7 +38,23 @@ namespace LinebotAzureOCRGit.Controllers
                         this.ReplyMessage(LineEvent.replyToken, "愛您唷 <3");
                     if (LineEvent.message.type.Trim().ToLower() == "image") //收到圖片
                     {
-                        
+                        var ocrService = new AzureOCRService();
+                        //取得contentid
+                        var LineContentID = ReceivedMessage.events.FirstOrDefault().message.id.ToString();
+                        var filebody = isRock.LineBot.Utility.GetUserUploadedContent(LineContentID, ChannelAccessToken);
+                        //建立唯一名稱
+                        var filename = "/tempFolder/" + Guid.NewGuid() + ".png";
+                        var path = System.Web.HttpContext.Current.Request.MapPath(filename);
+                        //save
+                        System.IO.File.WriteAllBytes(path, filebody);
+                        //回覆訊息
+                        var str = await ocrService.getOCR($"https://{System.Web.HttpContext.Current.Request.Url.Host}{filename}");
+                        str = ocrService.GetOCRResponseString(str);
+                        this.ReplyMessage(LineEvent.replyToken, $"{str}");
+
+                        System.IO.File.Delete(path);
+
+
                     }
                 }
                 //response OK
